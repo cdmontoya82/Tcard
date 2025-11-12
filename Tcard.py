@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from imblearn.over_sampling import SMOTE
 
 
 #1 -----------Carga y Vistazo Inicial--------------
@@ -71,10 +73,53 @@ print(df.head())
 
 
 
+
+print("\n--- 5. Dividiendo los datos ---")
+
 # Definimos X (features) e y (target)
 X = df.drop('Class', axis=1)
 y = df['Class']
 
-# Dividimos los datos
-# 70% entrenamiento, 30% prueba
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+# Dividimos los datos (70% entrenamiento, 30% prueba)
+# stratify=y es VITAL para asegurar que la proporción de fraude sea la misma en train y test
+X_train, X_test, y_train, y_test = train_test_split(X, y, 
+                                                    test_size=0.3, 
+                                                    random_state=42, 
+                                                    stratify=y)
+
+print(f"Forma de X_train (antes de SMOTE): {X_train.shape}")
+print(f"Forma de y_train (antes de SMOTE): {y_train.shape}")
+print(f"Forma de X_test: {X_test.shape}")
+print(f"Forma de y_test: {y_test.shape}")
+
+
+#------Balanceo de Datos de Entrenamiento (SMOTE)--------
+
+
+print("\n--- 6. Aplicando SMOTE al set de entrenamiento ---")
+
+# Inicializamos SMOTE
+# random_state es para reproducibilidad
+smote = SMOTE(random_state=42)
+
+# Aplicamos SMOTE
+X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+print(f"Forma de X_train después de SMOTE: {X_train_resampled.shape}")
+print("Distribución de clases en 'y_train' después de SMOTE:")
+print(pd.Series(y_train_resampled).value_counts(normalize=True))
+
+#----------Entrenamiento del Modelo (Línea Base)------------
+
+
+
+print("\n--- 7. Entrenando el modelo (Regresión Logística) ---")
+
+# 1. Inicializar el modelo
+# max_iter se aumenta por si la convergencia tarda
+model = LogisticRegression(random_state=42, max_iter=1000)
+
+# 2. Entrenar el modelo con los datos BALANCEADOS
+model.fit(X_train_resampled, y_train_resampled)
+
+print("¡Modelo entrenado exitosamente!")
