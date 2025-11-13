@@ -5,6 +5,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from imblearn.over_sampling import SMOTE
+from sklearn.metrics import classification_report, confusion_matrix
+
 
 
 #1 -----------Carga y Vistazo Inicial--------------
@@ -21,7 +23,7 @@ print(df.info())
 print(df[['Time', 'Amount']].describe())
 
 
-#-----Análisis Exploratorio de Datos (EDA)-----------
+#3.-----Análisis Exploratorio de Datos (EDA)-----------
 
 # 1. ¡Verificar el desbalanceo!
 print("Distribución de Clases:")
@@ -51,7 +53,7 @@ plt.title('Distribución de Transacciones (0: Genuina, 1: Fraude)')
 plt.savefig('grafico_distribucion.png') 
 plt.show() # Esta línea ahora es opcional
 
-# -------Preprocesamiento de Datos--------------
+#4. -------Preprocesamiento de Datos--------------
 
 # Creamos un escalador
 scaler = StandardScaler()
@@ -69,7 +71,7 @@ df = df[cols]
 
 print(df.head())
 
-#-------División de Datos (Train/Test Split)------
+#5.-------División de Datos (Train/Test Split)------
 
 
 
@@ -93,7 +95,7 @@ print(f"Forma de X_test: {X_test.shape}")
 print(f"Forma de y_test: {y_test.shape}")
 
 
-#------Balanceo de Datos de Entrenamiento (SMOTE)--------
+#6.------Balanceo de Datos de Entrenamiento (SMOTE)--------
 
 
 print("\n--- 6. Aplicando SMOTE al set de entrenamiento ---")
@@ -109,17 +111,56 @@ print(f"Forma de X_train después de SMOTE: {X_train_resampled.shape}")
 print("Distribución de clases en 'y_train' después de SMOTE:")
 print(pd.Series(y_train_resampled).value_counts(normalize=True))
 
-#----------Entrenamiento del Modelo (Línea Base)------------
 
 
+# --- 7. Entrenando el Modelo (Random Forest) ---
+# from sklearn.linear_model import LogisticRegression # <-- Comenta o borra esta
+from sklearn.ensemble import RandomForestClassifier # <-- Importa esta
 
-print("\n--- 7. Entrenando el modelo (Regresión Logística) ---")
+print("\n--- 7. Entrenando el modelo (Random Forest) ---")
 
 # 1. Inicializar el modelo
-# max_iter se aumenta por si la convergencia tarda
-model = LogisticRegression(random_state=42, max_iter=1000)
+# n_estimators=100 es el número de "árboles" en el bosque.
+# random_state=42 es para que el resultado sea reproducible.
+model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
 
-# 2. Entrenar el modelo con los datos BALANCEADOS
+# 2. Entrenar el modelo con los datos BALANCEADOS (¡los mismos de SMOTE!)
 model.fit(X_train_resampled, y_train_resampled)
 
-print("¡Modelo entrenado exitosamente!")
+print("¡Modelo Random Forest entrenado exitosamente!")
+
+
+
+#8.---Evaluación del Modelo----
+
+
+
+print("\n--- 8. Evaluando el modelo en el set de prueba (Test) ---")
+
+# 1. Hacer predicciones en el set de prueba (el que está desbalanceado)
+y_pred = model.predict(X_test)
+
+# 2. Generar el Reporte de Clasificación
+# Class 0 = Genuina
+# Class 1 = Fraude
+print("\nReporte de Clasificación:")
+print(classification_report(y_test, y_pred, target_names=['Genuina (0)', 'Fraude (1)']))
+
+# 3. Generar la Matriz de Confusión
+print("\nMatriz de Confusión:")
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+
+# 4. Visualizar la Matriz de Confusión (Opcional pero recomendado)
+# Esto guardará la imagen como 'matriz_confusion.png'
+print("\nGuardando gráfico de Matriz de Confusión...")
+plt.figure(figsize=(6, 4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+            xticklabels=['Pred. Genuina', 'Pred. Fraude'], 
+            yticklabels=['Real Genuina', 'Real Fraude'])
+plt.title('Matriz de Confusión')
+plt.ylabel('Valor Real')
+plt.xlabel('Valor Predicho')
+plt.savefig('matriz_confusion.png')
+
+print("\n--- Proceso completado ---")
